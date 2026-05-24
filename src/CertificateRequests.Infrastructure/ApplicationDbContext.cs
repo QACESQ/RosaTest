@@ -1,9 +1,10 @@
-﻿using CertificateRequests.Domain.Entities;
+﻿using CertificateRequests.Application.Interfaces;
+using CertificateRequests.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace CertificateRequests.Infrastructure;
+namespace CertificateRequests.Infrastructure.Persistence;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options), IApplicationDbContext
 {
     public DbSet<Employee> Employees => Set<Employee>();
 
@@ -16,5 +17,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
         base.OnModelCreating(modelBuilder);
+    }
+
+    public override Task<int> SaveChangesAsync(
+    CancellationToken cancellationToken = default)
+    {
+        return base.SaveChangesAsync(cancellationToken);
     }
 }
