@@ -10,22 +10,25 @@ namespace CertificateRequests.Application.Services;
 public class RequestService(IApplicationDbContext dbContext) : IRequestService
 {
 
-    public async Task<Guid> CreateAsync(CreateRequestDto dto)
+    public async Task<Guid> CreateAsync(CreateRequestDto dto, CancellationToken cancellationToken = default)
     {
         var employeeExists = await dbContext.Employees
-            .AnyAsync(x => x.Id == dto.EmployeeId);
+            .AnyAsync(x => x.Id == dto.EmployeeId, cancellationToken: cancellationToken);
 
         if (!employeeExists)
         {
             throw new NotFoundException("Employee not found");
         }
 
+        var duplicateThreshold = DateTime.UtcNow.AddMinutes(-1);
+
         var duplicateExists = await dbContext.CertificateRequests
             .AnyAsync(x =>
                 x.EmployeeId == dto.EmployeeId &&
                 x.Type == dto.Type &&
-                x.CreatedAt > DateTime.UtcNow.AddMinutes(-1) &&
-                x.Status != RequestStatus.Rejected);
+                x.CreatedAt > duplicateThreshold &&
+                x.Status != RequestStatus.Rejected,
+                cancellationToken: cancellationToken);
 
         if (duplicateExists)
         {
@@ -46,12 +49,12 @@ public class RequestService(IApplicationDbContext dbContext) : IRequestService
 
         dbContext.CertificateRequests.Add(request);
 
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return request.Id;
     }
 
-    public async Task<List<RequestDto>> GetEmployeeRequestsAsync(Guid employeeId)
+    public async Task<List<RequestDto>> GetEmployeeRequestsAsync(Guid employeeId, CancellationToken cancellationToken = default)
     {
         return await dbContext.CertificateRequests
             .Where(x => x.EmployeeId == employeeId)
@@ -65,10 +68,11 @@ public class RequestService(IApplicationDbContext dbContext) : IRequestService
                 Status = x.Status,
                 CreatedAt = x.CreatedAt
             })
-            .ToListAsync();
+            .AsNoTracking()
+            .ToListAsync(cancellationToken: cancellationToken);
     }
 
-    public async Task<List<RequestDto>> GetAllAsync()
+    public async Task<List<RequestDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await dbContext.CertificateRequests
             .OrderByDescending(x => x.CreatedAt)
@@ -81,14 +85,16 @@ public class RequestService(IApplicationDbContext dbContext) : IRequestService
                 Status = x.Status,
                 CreatedAt = x.CreatedAt
             })
-            .ToListAsync();
+            .AsNoTracking()
+            .ToListAsync(cancellationToken: cancellationToken);
     }
 
-    public async Task<RequestDetailsDto> GetByIdAsync(Guid id)
+    public async Task<RequestDetailsDto> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var request = await dbContext.CertificateRequests
             .Include(x => x.Employee)
-            .FirstOrDefaultAsync(x => x.Id == id);
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken: cancellationToken);
 
         if (request is null)
         {
@@ -107,10 +113,10 @@ public class RequestService(IApplicationDbContext dbContext) : IRequestService
         };
     }
 
-    public async Task UpdateStatusAsync(Guid id, UpdateStatusDto dto)
+    public async Task UpdateStatusAsync(Guid id, UpdateStatusDto dto, CancellationToken cancellationToken = default)
     {
         var request = await dbContext.CertificateRequests
-            .FirstOrDefaultAsync(x => x.Id == id);
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken: cancellationToken);
 
         if (request is null)
         {
@@ -132,7 +138,7 @@ public class RequestService(IApplicationDbContext dbContext) : IRequestService
 
         dbContext.RequestStatusHistories.Add(history);
 
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private static void ValidateStatusTransition(

@@ -1,4 +1,5 @@
 ﻿using CertificateRequests.Application.Interfaces;
+using CertificateRequests.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
