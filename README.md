@@ -133,3 +133,18 @@ dotnet run --project src/CertificateRequests.API
 ```
 http://localhost:5088/swagger
 ```
+
+### 4. Тестовые сотрудники
+
+```json
+[
+  {
+    id : "11111111-1111-1111-1111-111111111111",
+    fullName : "Ivan Ivanov"
+  },
+  {
+    id : "22222222-2222-2222-2222-222222222222",
+    fullName : "Petr Petrov"
+  }
+]
+```
